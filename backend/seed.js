@@ -152,13 +152,7 @@ const generateTrackQuestions = (categoryId, categoryName, sectionName) => {
         java: `// Java Starter Code for ${categoryName}\npublic class Solution {\n    public void solve() {\n        // Your code here\n    }\n}`,
         python: `# Python Starter Code for ${categoryName}\ndef solve():\n    # Your code here\n    pass`,
       },
-      examples: [
-        {
-          input: "x = 5, y = 10",
-          output: "15",
-          explanation: "Simple addition",
-        },
-      ],
+      
       constraints: ["0 <= x <= 1000", "Time Limit: 1s"],
     });
   }
