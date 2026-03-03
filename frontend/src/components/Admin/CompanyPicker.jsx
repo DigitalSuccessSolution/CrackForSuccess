@@ -1,5 +1,36 @@
 import { useState } from "react";
 import { FaTrash, FaPlus, FaImage, FaBuilding } from "react-icons/fa";
+import { findCompany, COMPANIES } from "../../lib/companyLogos";
+
+const CompanyIcon = ({ name, url }) => {
+  const match = findCompany(name);
+  const domain = match?.domain || null;
+  const sources = [
+    url || null,
+    domain ? `https://logo.clearbit.com/${domain}` : null,
+    domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : null,
+  ].filter(Boolean);
+
+  const [idx, setIdx] = useState(0);
+  const current = sources[idx];
+
+  if (current) {
+    return (
+      <img
+        src={current}
+        alt={name}
+        className="w-5 h-5 object-contain rounded bg-white"
+        onError={() => setIdx((prev) => prev + 1)}
+      />
+    );
+  }
+
+  return (
+    <div className="w-5 h-5 bg-indigo-100 rounded flex items-center justify-center text-[9px] font-bold text-indigo-600 shrink-0">
+      {name?.[0]?.toUpperCase()}
+    </div>
+  );
+};
 
 /**
  * CompanyPicker — Admin me har company ka naam + image URL add karo
@@ -32,6 +63,15 @@ const CompanyPicker = ({ value = [], onChange }) => {
     }
   };
 
+  // Determine logo for preview
+  const match = findCompany(name);
+  const domain = match?.domain || null;
+  const previewSources = [
+    logoUrl || null,
+    domain ? `https://logo.clearbit.com/${domain}` : null,
+    domain ? `https://www.google.com/s2/favicons?sz=64&domain=${domain}` : null,
+  ].filter(Boolean);
+
   return (
     <div className="space-y-3">
       {/* Added Companies List */}
@@ -42,22 +82,7 @@ const CompanyPicker = ({ value = [], onChange }) => {
               key={i}
               className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm"
             >
-              {c.logoUrl ? (
-                <img
-                  src={c.logoUrl}
-                  alt={c.name}
-                  className="w-5 h-5 object-contain rounded"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src =
-                      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%23e5e7eb'/%3E%3C/svg%3E";
-                  }}
-                />
-              ) : (
-                <div className="w-5 h-5 bg-indigo-100 rounded flex items-center justify-center text-[9px] font-bold text-indigo-600">
-                  {c.name[0]?.toUpperCase()}
-                </div>
-              )}
+              <CompanyIcon name={c.name} url={c.logoUrl} />
               <span className="text-sm font-medium text-gray-700">
                 {c.name}
               </span>
@@ -86,12 +111,23 @@ const CompanyPicker = ({ value = [], onChange }) => {
             />
             <input
               type="text"
+              list="company-suggestions"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (e.target.value.trim() && !logoUrl.trim()) {
+                  setPreview(true);
+                }
+              }}
               onKeyDown={handleKeyDown}
               placeholder="Company name (e.g. TCS)"
               className="w-full pl-8 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-indigo-400 focus:ring-3 focus:ring-indigo-500/10 outline-none transition-all"
             />
+            <datalist id="company-suggestions">
+              {COMPANIES.map((c) => (
+                <option key={c.name} value={c.name} />
+              ))}
+            </datalist>
           </div>
 
           {/* Logo URL */}
@@ -105,7 +141,7 @@ const CompanyPicker = ({ value = [], onChange }) => {
               value={logoUrl}
               onChange={(e) => {
                 setLogoUrl(e.target.value);
-                setPreview(!!e.target.value.trim());
+                setPreview(!!e.target.value.trim() || !!name.trim());
               }}
               onKeyDown={handleKeyDown}
               placeholder="Logo image URL (optional)"
@@ -117,20 +153,10 @@ const CompanyPicker = ({ value = [], onChange }) => {
         {/* Preview + Add button */}
         <div className="flex items-center gap-2">
           {/* Live logo preview */}
-          {preview && logoUrl && (
+          {preview && previewSources.length > 0 && (
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">
               <span className="text-xs text-gray-500">Preview:</span>
-              <img
-                src={logoUrl}
-                alt="preview"
-                className="w-6 h-6 object-contain rounded"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src =
-                    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%23fee2e2'/%3E%3Ctext x='12' y='16' text-anchor='middle' font-size='10' fill='%23ef4444'%3E!%3C/text%3E%3C/svg%3E";
-                  setPreview(false);
-                }}
-              />
+              <CompanyIcon name={name} url={logoUrl} />
               {name && (
                 <span className="text-xs font-medium text-gray-700">
                   {name}
@@ -152,8 +178,8 @@ const CompanyPicker = ({ value = [], onChange }) => {
       </div>
 
       <p className="text-xs text-gray-400">
-        💡 Logo URL ke liye Google Images ya company website se copy karo, ya
-        koi bhi image URL paste karo.
+        💡 If a known company is typed, logo automatically appears. You can also
+        paste a custom Image URL.
       </p>
     </div>
   );
